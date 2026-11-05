@@ -14,6 +14,7 @@ An agent skill (for Claude and other agents that read `SKILL.md`) that acts as a
 - **Money in/out is always manual**: the skill never deposits, withdraws or transfers funds.
 - **Designed reports**: HTML report (cards, cost waterfall, equity curve), email-safe version emailed to you, and slide decks on request.
 - **Your data stays local**: keys, email, schedule, trades and reports live in git-ignored `trader-data/`; the repo holds dummy values only (`scripts/secrets_local.py audit` checks).
+- **Separate India and US chart emails** after each market closes, hourly silent check-ins during market hours, and a local no-AI 5-minute monitor (`scripts/install_monitor.sh`).
 - **Daily, weekly or monthly progress reports** with outcomes, open positions, trends and net profit after brokerage, taxes and AI cost.
 - **Monthly after-tax report** against a goal (default 8–16% a month on the trading budget).
 

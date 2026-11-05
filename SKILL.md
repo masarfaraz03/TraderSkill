@@ -209,6 +209,19 @@ Build each report in three steps:
    ```
    The `--html` page is the designed report (net-after-costs cards with a cost waterfall, equity curve, trades, positions, trends/lessons/needs-you; light and dark mode, phone-friendly). The `--email` file is the same content in plain tables and lists so it survives email sanitizers.
 
+**Schedule (per market, after each close)** — create these as scheduled tasks needing the local device, with push notifications **off** (the email is the only output):
+
+| Task | When | Does |
+|---|---|---|
+| India hourly check | `CRON_TZ=Asia/Kolkata 20 9-15 * * 1-5` | paper-trade management, new setups, lessons — silent |
+| US hourly check | `CRON_TZ=America/New_York 35 9-15 * * 1-5` | same for US — silent |
+| India report email | `CRON_TZ=Asia/Kolkata 5 16 * * 1-5` | `render_report.py --market IN --email-charts ...`, emailed |
+| US report email | `CRON_TZ=America/New_York 20 16 * * 1-5` | `render_report.py --market US --email-charts ...`, emailed |
+
+Scheduled tasks can't run more often than hourly, so 5-minute coverage comes from `scripts/monitor.py` on the user's computer (`bash scripts/install_monitor.sh` installs a launchd job every 300 s). It needs no AI: during market hours it prices open **paper** positions (kite CLI for India, yfinance for US), closes those that hit stop/target (and day trades near the close), and logs to `reports/<date>.<IN|US>.log`; live positions only get an ALERT line. Hourly check-ins read that log and write the post-mortems.
+
+**Email format**: use `--email-charts` (bar charts built from table cells, hover tooltips via `title`, no images) and send it with a tool that keeps inline styles — Gmail `send_message` with `htmlBody`. Outlook's send tool strips styles, so it only suits the plain `--email` version. The designed interactive page (`--html`, hover/tap tooltips on every bar and point) is saved locally; email clients can't run hover scripts.
+
 **Email delivery**: send the contents of the `.email.html` file as the HTML body to `profile.json` → `reporting.email`, through the user's own email connector (Outlook/Microsoft 365 or Gmail), subject `TraderSkill daily report — <date> — <net today/MTD>`. Send only to the user's own address from their profile; never to anyone else, and never put secrets in a report.
 
 **Presentation on request**: when the user asks for slides or a presentation, build a deck — use Claude's Slides artifact type if the session offers it (feed it the same numbers and narrative), otherwise `render_report.py ... --deck <data>/reports/<date>.pptx` (needs `pip install python-pptx`). Monthly reviews make a good deck: net after costs per market, what worked, lessons, next month's plan.
@@ -237,4 +250,4 @@ Never print, echo, commit or paste secret values; never ask the user to paste ke
 - `references/brokers.md` — US & India broker APIs, paper/sandbox support, how to connect, symbol formats. Read before any live order or broker setup.
 - `references/market-history.md` — 2016–2026 market regimes and what worked/failed in each, US, India and crypto. Read when planning or reviewing.
 - `references/investors.md` — famous US and Indian investors from the last 30 years, how to look up their current holdings, and what's worth learning from each.
-- `scripts/risk_check.py`, `scripts/ledger.py` (open/close/stats/monthly/report/sip), `scripts/render_report.py` (designed HTML, email, deck), `scripts/secrets_local.py` (local secrets, repo audit), `scripts/backtest.py` — run with `--help` for all options.
+- `scripts/risk_check.py`, `scripts/ledger.py` (open/close/stats/monthly/report/sip), `scripts/render_report.py` (interactive HTML, chart email, deck; `--market IN|US`), `scripts/monitor.py` + `install_monitor.sh` (local 5-minute paper monitor), `scripts/secrets_local.py` (local secrets, repo audit), `scripts/backtest.py` — run with `--help` for all options.
