@@ -66,5 +66,26 @@
       "USD": 300,
       "INR": 20000
     }
+  },
+  "paper_until": null,
+  "funding": {
+    "_note": "Deposits and withdrawals are done by the user in the broker app. The skill never moves money; it only reads balances.",
+    "monthly_contribution": {
+      "USD": 100,
+      "INR": 10000
+    }
+  },
+  "costs": {
+    "_note": "Monthly AI/subscription cost attributed to this trading, counted in reports.",
+    "ai_monthly": {
+      "USD": 0,
+      "INR": 0
+    }
+  },
+  "reporting": {
+    "cadence": null,
+    "_options": "daily | weekly | monthly — ask the user after they add funds",
+    "time": "18:00",
+    "timezone": null
   }
 }

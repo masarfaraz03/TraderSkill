@@ -30,7 +30,8 @@ All state lives in one folder so learning carries across sessions:
 | "Should I buy X?" / idea | §2 Plan (no order unless they say go) |
 | Backtest / "how would this have done" | §6 Backtest |
 | What big investors hold / are buying | `references/investors.md` |
-| Review P&L, "how am I doing", weekly review | §7 Learn |
+| Review P&L, "how am I doing", weekly review | §7 Learn, §11 Report |
+| User added funds / wants reports | §3 money rule, §11 Report |
 | Set or change budget, allocation % | edit `profile.json` (§3 rules on who may raise caps) |
 | Connect a broker | `references/brokers.md`, §10 |
 | Research a company, earnings, thesis, valuation | §10 research add-ons → §2 Plan |
@@ -69,6 +70,8 @@ It prints `PASS`/`FAIL` with reasons and exits non-zero on failure. Default rule
 - **Options**: buying calls/puts and defined-risk spreads only. No naked option selling — the loss is unlimited, which can't fit a small cap.
 - **Futures**: full contracts usually have notional far above the caps (one NIFTY lot is lakhs of rupees; an ES contract is ~$300k). Allow only micro contracts (MES, MNQ, MBT…) or Indian futures where max loss at the stop fits the cap, and say the notional size out loud. Otherwise suggest a defined-risk option or the ETF instead.
 - **Daily loss limit** and **max open trades** from the profile — once hit, stop trading for the day and say so.
+
+**Money in and out is manual — always.** Never add funds, withdraw, request payouts, transfer between accounts or segments, pledge/unpledge, set up UPI/bank mandates, or change bank details, through any API, CLI, connector or browser — even if asked, and even if a tool can. Tell the user to do it themselves in the broker app. Reading balances and margins is fine. When the user says they've added funds, update `trading.budget` only to the amount they state, then ask about reports (§11) if not set yet.
 
 **Caps only go down automatically, never up.** If the user wants higher caps, show the current vs requested number, remind them the point is money they can afford to lose, and change `profile.json` only on their explicit instruction. If a request is over the cap (e.g. "buy NIFTY futures with ₹2 lakh"), don't just refuse — offer the closest version that fits (smaller size, a micro contract, an option with capped premium, or paper-trading the full size).
 
@@ -182,9 +185,32 @@ Read-only connectors are ideal for live quotes, holdings and history (they solve
 
 **Adding more add-ons later**: only from the broker or data vendor itself or another well-known source; copy into `addons/<name>/`, rename `SKILL.md` to `ADDON.md` so it can't trigger on its own and bypass these rules, add the guardrail block, record it in `THIRD_PARTY.md`.
 
+## 11. Progress reports (daily / weekly / monthly)
+
+After the user adds funds (or on first setup), ask how often they want a report — daily (weekdays), weekly, or monthly — and the time and timezone; store it in `profile.json` → `reporting`. If the session can create scheduled tasks, offer to set one up so the report arrives on its own; a scheduled run needs the user's computer (their `TraderSkill` folder and broker sign-in), so mark it as needing the local device.
+
+Build each report with:
+
+```bash
+python scripts/ledger.py --ledger <data>/ledger.json report --period day --profile <data>/profile.json \
+  --prices '{"NSE:INFY": 1492}' --out <data>/reports/<YYYY-MM-DD>.md
+```
+
+Fetch current prices first (read-only broker quote or connector) for the open positions. Then fill the "Trend & lessons" section yourself:
+
+- **What I did and why** — trades opened/closed, paper or live, and the outcome in money and R.
+- **Open positions** — unrealised P&L, distance to stop/target, any earnings or events coming up.
+- **Trends** — how the user's holdings and the markets they trade moved (index vs 200-day average, sector moves, volatility), in two or three lines.
+- **Net economics** — month to date after brokerage, estimated taxes and AI cost (`costs.ai_monthly`), against the monthly goal. Be plain when costs are eating the returns (e.g. a $20/month AI cost on a $100 budget means 20% a month just to break even).
+- **Needs you** — proposed live orders awaiting approval, cap or allocation questions, deposits the user said they'd make.
+
+Scheduled runs never place live orders and never move money: they update paper trades, mark positions, write the report and list live proposals for the user to approve in a conversation. If `paper_until` is set, stay in paper until that date; at the switch, show the paper month's results and ask before changing `mode` to `live`.
+
+The monthly report (`--period month`) adds the after-tax table from §8 and a review of lessons promoted or retired.
+
 ## Reference files
 
 - `references/brokers.md` — US & India broker APIs, paper/sandbox support, how to connect, symbol formats. Read before any live order or broker setup.
 - `references/market-history.md` — 2016–2026 market regimes and what worked/failed in each, US, India and crypto. Read when planning or reviewing.
 - `references/investors.md` — famous US and Indian investors from the last 30 years, how to look up their current holdings, and what's worth learning from each.
-- `scripts/risk_check.py`, `scripts/ledger.py`, `scripts/backtest.py` — run with `--help` for all options.
+- `scripts/risk_check.py`, `scripts/ledger.py` (open/close/stats/monthly/report/sip), `scripts/backtest.py` — run with `--help` for all options.

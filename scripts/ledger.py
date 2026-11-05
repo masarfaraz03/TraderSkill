@@ -274,6 +274,91 @@ def cmd_monthly(a):
     print("Tax figures are planning estimates from profile.json rates; confirm with a tax professional.")
 
 
+def cmd_report(a):
+    """Daily or monthly progress report: actions, outcomes, open positions, costs, net vs goal."""
+    d = load(a.ledger)
+    prof = json.load(open(a.profile)) if a.profile else {}
+    prices = json.loads(a.prices) if a.prices else {}
+    today = (a.date or datetime.now(timezone.utc).date().isoformat())
+    month = today[:7]
+    budget = prof.get("trading", {}).get("budget", {})
+    goal = prof.get("goal", {}).get("monthly_after_tax_return_pct", {})
+    ai = prof.get("costs", {}).get("ai_monthly", {})
+    tax = prof.get("tax", {})
+    trades = d["trades"]
+    lines = [f"# TraderSkill {'daily' if a.period == 'day' else 'monthly'} report — {today if a.period == 'day' else month}",
+             f"Mode: {prof.get('mode', 'paper').upper()}" + (f" (paper until {prof['paper_until']})" if prof.get("paper_until") else "")]
+
+    def in_period(ts):
+        return bool(ts) and (ts[:10] == today if a.period == "day" else ts[:7] == month)
+
+    opened = [t for t in trades if in_period(t.get("opened"))]
+    closed = [t for t in trades if t["status"] == "closed" and in_period(t.get("closed"))]
+    lines.append("\n## What I did")
+    if not opened and not closed:
+        lines.append("- No trades this period.")
+    for t in opened:
+        lines.append(f"- Opened {t['id']} [{t['mode']}] {t['side']} {t['qty']} {t['symbol']} @ {t['entry']} "
+                     f"({t['horizon']}, {t['broker']}) — {t['thesis']}")
+    for t in closed:
+        lines.append(f"- Closed {t['id']} {t['symbol']} @ {t['exit']}: {money(t['currency'], t['pnl'])}"
+                     f"{' (' + str(t['r_multiple']) + 'R)' if t.get('r_multiple') is not None else ''} — {t.get('note', '')}")
+    for s in d.get("sips", []):
+        for i in s["instalments"]:
+            if in_period(i["date"]):
+                lines.append(f"- SIP {s['id']} instalment {money(s['currency'], i['amount'])} in {s['symbol']}")
+
+    lines.append("\n## Open positions")
+    opens = [t for t in trades if t["status"] == "open"]
+    if not opens:
+        lines.append("- None.")
+    for t in opens:
+        u = ""
+        if t["symbol"] in prices:
+            p = pnl_of(t, prices[t["symbol"]])
+            u = f" | now {prices[t['symbol']]} → unrealised {money(t['currency'], p)} ({100 * p / t['capital']:.1f}%)" if t["capital"] else ""
+        lines.append(f"- {t['id']} {t['symbol']} {t['qty']} @ {t['entry']} stop {t['stop']} tgt {t['target']} ({t['horizon']}){u}")
+
+    # Month-to-date economics
+    lines.append(f"\n## Month to date ({month}) — after brokerage, taxes and AI cost")
+    mtd = [t for t in trades if t["status"] == "closed" and t.get("closed", "")[:7] == month]
+    for ccy in ("USD", "INR"):
+        c = [t for t in mtd if t["currency"] == ccy]
+        gross_before_fees = sum(t["pnl"] + (t.get("fees") or 0) + (t.get("exit_fees") or 0) for t in c)
+        fees = sum((t.get("fees") or 0) + (t.get("exit_fees") or 0) for t in c)
+        after_fees = gross_before_fees - fees
+        rates = tax.get("US" if ccy == "USD" else "IN", {})
+        est_tax = 0.0
+        buckets = defaultdict(float)
+        for t in c:
+            buckets[tax_bucket(t)] += t["pnl"]
+        for b, p in buckets.items():
+            if p > 0:
+                r = (0.6 * rates.get("long_term", 0.15) + 0.4 * rates.get("short_term", 0.24)) if b == "us_1256" \
+                    else rates.get(b, rates.get("short_term", 0.0))
+                est_tax += p * r
+        ai_cost = ai.get(ccy, 0) or 0
+        net = after_fees - est_tax - ai_cost
+        b = budget.get(ccy)
+        pct = f"{100 * net / b:.2f}%" if b else "n/a"
+        if not c and not ai_cost:
+            continue
+        lines.append(f"- {ccy}: {len(c)} closed | before fees {money(ccy, gross_before_fees)} − brokerage "
+                     f"{money(ccy, fees)} − est. tax {money(ccy, est_tax)} − AI {money(ccy, ai_cost)} = "
+                     f"**{money(ccy, net)} ({pct} of {money(ccy, b or 0)})**"
+                     + (f" | goal {goal.get('min')}–{goal.get('max')}%" if goal else ""))
+
+    lines.append("\n## Trend & lessons")
+    lines.append("- (Agent fills in: market/holding trends from live quotes, which lessons fired or changed, "
+                 "and what needs the user's decision or approval.)")
+    lines.append("\nTaxes are estimates from profile.json; money in/out of the broker is done by you, never by the skill.")
+    out = "\n".join(lines)
+    if a.out:
+        os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
+        open(a.out, "w").write(out + "\n")
+    print(out)
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--ledger", required=True)
@@ -317,13 +402,17 @@ def main():
     s.add_argument("--day", type=int, default=5); s.add_argument("--broker", default="paper")
     s.add_argument("--mode", choices=["paper", "live"], default="paper"); s.add_argument("--thesis", default="")
     s.add_argument("--monthly-amount", type=float, help="instalment amount"); s.add_argument("--nav", type=float)
+    s = sub.add_parser("report", help="daily/monthly progress report")
+    s.add_argument("--period", choices=["day", "month"], default="day")
+    s.add_argument("--profile"); s.add_argument("--prices", help='JSON map of current prices')
+    s.add_argument("--date", help="YYYY-MM-DD (default today UTC)"); s.add_argument("--out", help="write markdown here")
     s = sub.add_parser("monthly", help="after-tax monthly results vs goal")
     s.add_argument("--profile", help="profile.json for tax rates, budget and goal")
     s.add_argument("--json", action="store_true")
 
     a = p.parse_args()
     {"init": cmd_init, "open": cmd_open, "close": cmd_close,
-     "positions": cmd_positions, "stats": cmd_stats, "monthly": cmd_monthly, "sip": cmd_sip}[a.cmd](a)
+     "positions": cmd_positions, "stats": cmd_stats, "monthly": cmd_monthly, "sip": cmd_sip, "report": cmd_report}[a.cmd](a)
 
 
 if __name__ == "__main__":
