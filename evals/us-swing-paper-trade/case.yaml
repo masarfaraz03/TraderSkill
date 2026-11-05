@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: us-swing-paper-trade
+expected_outcome: |
+  Sets up a data folder with profile, ledger and lessons; writes a short plan with entry, stop and target; sizes the AMD position within the $500 cap and the money-at-risk limit; runs the risk check; records a paper trade in the ledger with a thesis; does not claim a live Webull order was placed.

@@ -1,0 +1,6 @@
+trader-data/
+__pycache__/
+*.pyc
+.DS_Store
+*.tmp
+evals/results/

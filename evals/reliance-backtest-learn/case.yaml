@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: reliance-backtest-learn
+expected_outcome: |
+  Runs the backtest on the supplied 10-year Reliance CSV; reports CAGR, max drawdown, trade count and comparison with buy-and-hold; gives an honest verdict on swing-trading suitability (a 50/200 crossover produces few, long trades); writes a lesson to lessons.md with evidence and hypothesis status.
+context:
+  scaffold_script: place-files.sh

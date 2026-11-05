@@ -1,0 +1,31 @@
+{
+  "_note": "Caps only go down automatically. Raise them only on the user's explicit instruction.",
+  "mode": "paper",
+  "home_currency": "USD",
+  "brokers": {
+    "US": ["webull"],
+    "IN": ["zerodha"]
+  },
+  "trading": {
+    "budget": {"USD": 2000, "INR": 200000},
+    "max_per_trade": {"USD": 500, "INR": 50000},
+    "max_risk_pct_of_budget": 2.0,
+    "daily_loss_limit": {"USD": 100, "INR": 10000},
+    "max_open_trades": 5,
+    "allocation_pct": {"stock": 50, "option": 20, "future": 10, "crypto": 20},
+    "allow_naked_option_selling": false
+  },
+  "goal": {
+    "monthly_after_tax_return_pct": {"min": 8, "max": 16},
+    "_note": "Stretch goal for measuring, never a reason to add risk."
+  },
+  "tax": {
+    "_note": "Estimates for planning; set to the user's real rates. US short-term = ordinary income rate. India: STCG equity 20%, LTCG equity 12.5% (above ₹1.25 lakh/yr), F&O taxed as business income at slab rate, crypto 30% flat.",
+    "US": {"short_term": 0.24, "long_term": 0.15, "crypto_short_term": 0.24, "crypto_long_term": 0.15},
+    "IN": {"short_term": 0.20, "long_term": 0.125, "fno": 0.30, "crypto_short_term": 0.30, "crypto_long_term": 0.30}
+  },
+  "long_term": {
+    "max_per_position": {"USD": 2000, "INR": 200000},
+    "require_confirmation": true
+  }
+}
