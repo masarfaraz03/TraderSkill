@@ -51,6 +51,8 @@ US symbols: `AAPL`, options OCC style (`AAPL 251121C00200000`), micro futures `M
 | Groww | Trading API (launched 2025) | check | No | |
 | Crypto (India) | CoinDCX, Mudrex, WazirX APIs | — | No | 30% tax on gains + 1% TDS per sale; losses can't offset other income |
 
+**Official broker MCP servers (India, checked Oct 2026)**: Zerodha `mcp.kite.trade/mcp` (read-only except GTT; open-source code github.com/zerodha/kite-mcp-server has order tools if self-hosted), Upstox `mcp.upstox.com/mcp` (read-only, re-auth daily), Fyers `mcp.fyers.in/mcp` (read-only), Kotak Neo `neo.kotaksecurities.com/mcp-server/mcp` (read-only), Dhan `mcp.dhan.co/mcp` (orders), Groww `mcp.groww.in/mcp` (orders; sells need DDPI). Angel One has no official server — avoid community ones that need your PIN/TOTP. Upstox also publishes an official agent skill, bundled as `addons/upstox/`.
+
 **OpenAlgo** (open source, docs.openalgo.in) gives one API across 20+ Indian brokers; useful if the user wants several Indian brokers behind one adapter.
 
 Indian symbols: `NSE:RELIANCE`, `BSE:500325`, F&O on NFO e.g. `NFO:NIFTY25NOV24000CE`. **Lot sizes and expiry days change** (SEBI raised minimum F&O contract values and cut weekly expiries to one index per exchange from Nov 2024) — look up the current lot size before sizing; one NIFTY lot is worth lakhs of rupees, so plain index futures rarely fit a ₹50,000 cap.

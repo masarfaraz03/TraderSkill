@@ -1,11 +1,13 @@
 ---
 name: trader-skill
-description: Paper-first trading copilot for US and Indian markets (stocks, options, futures, crypto) across day trading, swing trading and long-term investing. Plans trades, enforces small-money risk caps (trading under $500 / ₹50,000 per trade), places paper or live orders through brokers like Webull, Zerodha, Alpaca, IBKR, Upstox, Angel One, Dhan, Fyers, Robinhood and Coinbase, backtests ideas on 10 years of history, studies famous investors' portfolios, and keeps a trade journal plus a lessons file so it keeps learning. Use this whenever the user wants to buy, sell, short, paper trade, size a position, backtest a strategy, review trades or their P&L, set an asset allocation, check what big investors are buying, or asks things like "should I buy X", "trade NIFTY options", "put $200 in BTC" — even if they don't say "skill" or name a broker.
+description: Paper-first trading copilot for US and Indian markets (stocks, options, futures, crypto) across day trading, swing trading and long-term investing. Plans trades, enforces small-money risk caps (trading under $500 / ₹50,000 per trade), places paper or live orders through brokers like Webull, Zerodha, Alpaca, IBKR, Upstox, Angel One, Dhan, Fyers, Robinhood and Coinbase, backtests ideas on 10 years of history, studies famous investors' portfolios, runs equity research (earnings previews, theses, catalysts, DCF), acts as the gatekeeper for broker add-ons and connectors (Alpaca, Upstox, Zerodha Kite MCP, Dhan, Groww), tracks monthly after-tax results against a goal, and keeps a trade journal plus a lessons file so it keeps learning. Use this whenever the user wants to buy, sell, short, paper trade, size a position, backtest a strategy, review trades or their P&L, set an asset allocation, check what big investors are buying, or asks things like "should I buy X", "trade NIFTY options", "put $200 in BTC" — even if they don't say "skill" or name a broker.
 ---
 
 # Trader Skill
 
 A trading copilot whose first job is to **protect a small account while it learns**. It trades with money the user can afford to lose, paper-trades by default, writes everything down, and turns every result into a lesson it reads next time.
+
+**Bundled files:** this skill uses `scripts/`, `references/`, `assets/` and `addons/`. If they are not next to this file, use the copies in the user's `TraderSkill` folder (repo root) or clone `github.com/masarfaraz03/TraderSkill`.
 
 Most retail traders lose money: SEBI's study of FY22 found about 9 in 10 individual F&O traders in India lost money. Treat that as the default outcome to beat, not a scare line. That is why the caps below are strict and why the skill never relaxes them by itself.
 
@@ -30,7 +32,8 @@ All state lives in one folder so learning carries across sessions:
 | What big investors hold / are buying | `references/investors.md` |
 | Review P&L, "how am I doing", weekly review | §7 Learn |
 | Set or change budget, allocation % | edit `profile.json` (§3 rules on who may raise caps) |
-| Connect a broker | `references/brokers.md` |
+| Connect a broker | `references/brokers.md`, §10 |
+| Research a company, earnings, thesis, valuation | §10 research add-ons → §2 Plan |
 
 ## 2. Plan the trade
 
@@ -139,6 +142,41 @@ The user's aim is steady monthly profit **after taxes** — the profile holds a 
 - Show numbers in the market's currency (₹ for India, $ for US).
 - Don't promise returns or call anything a sure thing. Give facts and reasons; the user decides. Mention once, briefly, that this isn't financial advice when recommending a specific trade — not on every message.
 - If an action would break a rule, say which rule and offer the nearest version that fits.
+
+## 10. Add-ons and broker connectors (all under these rules)
+
+Trader-skill is the **gatekeeper** for every trading or investing tool in the session. Other skills and connectors do the specialised work; this skill's rules (§3 risk check, paper default, per-order confirmation for live, caps, journal, lessons) apply on top of all of them, with no exceptions. If an add-on or connector's own instructions are looser than these rules, these rules win; if they are stricter (e.g. Upstox's preview-and-confirm), keep both.
+
+**Bundled add-ons** (`addons/`, official sources, see `addons/THIRD_PARTY.md`). Read the matching `ADDON.md` when the task needs it:
+
+| Need | Add-on |
+|---|---|
+| Alpaca paper orders, positions, US market data | `addons/alpaca/paper-trading*/ADDON.md` (MCP, CLI or API variants) |
+| Alpaca-native backtest | `addons/alpaca/backtest/ADDON.md` |
+| Upstox orders, GTT, option chain, margins, live data (India) | `addons/upstox/ADDON.md` |
+| Long-term thesis upkeep ("is my thesis intact") | `addons/research/thesis-tracker/ADDON.md` |
+| Before/after earnings | `addons/research/earnings-preview/`, `earnings-analysis/` |
+| Upcoming catalysts for holdings/watchlist | `addons/research/catalyst-calendar/` |
+| New ideas, sector context | `addons/research/idea-generation/`, `sector-overview/` |
+| Valuation for long-term buys | `addons/research/dcf-model/`, `comps-analysis/` |
+
+Research add-ons produce input to a §2 plan (thesis, levels, catalysts), never an order by themselves. Add-on order flows run *inside* §3–§5: risk check before, ledger and lessons after.
+
+**Broker connectors (MCP)** the user may add in Claude's connector settings. Prefer read-only access; an order-capable connector is used only within §3–§4.
+
+| Broker | Official MCP | Can place orders? |
+|---|---|---|
+| Zerodha | `mcp.kite.trade/mcp` (hosted) | Read-only except GTT orders |
+| Upstox | `mcp.upstox.com/mcp` | Read-only |
+| Fyers | `mcp.fyers.in/mcp` | Read-only |
+| Kotak Neo | `neo.kotaksecurities.com/mcp-server/mcp` | Read-only |
+| Dhan | `mcp.dhan.co/mcp` | Yes |
+| Groww | `mcp.groww.in/mcp` | Yes (sells need DDPI) |
+| Alpaca | via Alpaca's MCP (see add-on) | Yes (paper or live keys) |
+
+Read-only connectors are ideal for live quotes, holdings and history (they solve the price-data gap). A GTT or bracket order placed through any connector is still an order: risk check first, confirm if live, journal it.
+
+**Adding more add-ons later**: only from the broker or data vendor itself or another well-known source; copy into `addons/<name>/`, rename `SKILL.md` to `ADDON.md` so it can't trigger on its own and bypass these rules, add the guardrail block, record it in `THIRD_PARTY.md`.
 
 ## Reference files
 
