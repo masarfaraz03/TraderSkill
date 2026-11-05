@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 
 CURRENCY = {"US": "USD", "IN": "INR"}
 SYMBOL = {"USD": "$", "INR": "₹"}
-DEFAULT_MULT = {"stock": 1, "crypto": 1, "option": 1, "future": 1}
+DEFAULT_MULT = {"stock": 1, "crypto": 1, "option": 1, "future": 1, "fund": 1}
 
 
 def now():
@@ -96,6 +96,34 @@ def cmd_open(a):
     r = money(ccy, risk) if risk is not None else "n/a (no stop)"
     print(f"OPENED {t['id']} [{a.mode}] {a.side} {a.qty} {a.symbol} @ {a.price} "
           f"| capital {money(ccy, capital)} | risk {r}")
+
+
+def cmd_sip(a):
+    d = load(a.ledger)
+    d.setdefault("sips", [])
+    if a.action == "add":
+        sid = f"S{len(d['sips']) + 1}"
+        d["sips"].append({"id": sid, "status": "active", "mode": a.mode, "market": a.market,
+                          "currency": CURRENCY[a.market], "symbol": a.symbol, "monthly": a.monthly,
+                          "day": a.day, "broker": a.broker, "thesis": a.thesis, "created": now(),
+                          "instalments": []})
+        print(f"SIP {sid} [{a.mode}] {money(CURRENCY[a.market], a.monthly)}/month in {a.symbol} on day {a.day}")
+    elif a.action == "instalment":
+        s = next(x for x in d["sips"] if x["id"] == a.id)
+        units = a.monthly_amount / a.nav if a.nav else None
+        s["instalments"].append({"date": now(), "amount": a.monthly_amount, "nav": a.nav, "units": units})
+        print(f"{a.id}: recorded {money(s['currency'], a.monthly_amount)} at NAV {a.nav}")
+    elif a.action == "stop":
+        s = next(x for x in d["sips"] if x["id"] == a.id)
+        s["status"] = "stopped"; s["stopped"] = now()
+        print(f"{a.id} stopped")
+    else:
+        for s in d["sips"]:
+            inv = sum(i["amount"] for i in s["instalments"])
+            units = sum(i["units"] or 0 for i in s["instalments"])
+            print(f"{s['id']} [{s['mode']}, {s['status']}] {s['symbol']} {money(s['currency'], s['monthly'])}/month "
+                  f"| {len(s['instalments'])} instalments, invested {money(s['currency'], inv)}, units {units:.3f}")
+    save(a.ledger, d)
 
 
 def pnl_of(t, exit_price):
@@ -255,7 +283,7 @@ def main():
 
     s = sub.add_parser("open")
     s.add_argument("--market", choices=["US", "IN"], required=True)
-    s.add_argument("--asset", choices=["stock", "option", "future", "crypto"], required=True)
+    s.add_argument("--asset", choices=["stock", "option", "future", "crypto", "fund"], required=True)
     s.add_argument("--symbol", required=True)
     s.add_argument("--side", choices=["buy", "sell"], required=True)
     s.add_argument("--qty", type=float, required=True, help="shares/coins, or contracts*lot units for options")
@@ -282,13 +310,20 @@ def main():
 
     s = sub.add_parser("positions"); s.add_argument("--prices", help='JSON map, e.g. {"AAPL": 195}')
     sub.add_parser("stats")
+    s = sub.add_parser("sip", help="track SIPs / recurring investments")
+    s.add_argument("action", choices=["add", "instalment", "stop", "list"])
+    s.add_argument("--id"); s.add_argument("--market", choices=["US", "IN"], default="IN")
+    s.add_argument("--symbol"); s.add_argument("--monthly", type=float)
+    s.add_argument("--day", type=int, default=5); s.add_argument("--broker", default="paper")
+    s.add_argument("--mode", choices=["paper", "live"], default="paper"); s.add_argument("--thesis", default="")
+    s.add_argument("--monthly-amount", type=float, help="instalment amount"); s.add_argument("--nav", type=float)
     s = sub.add_parser("monthly", help="after-tax monthly results vs goal")
     s.add_argument("--profile", help="profile.json for tax rates, budget and goal")
     s.add_argument("--json", action="store_true")
 
     a = p.parse_args()
     {"init": cmd_init, "open": cmd_open, "close": cmd_close,
-     "positions": cmd_positions, "stats": cmd_stats, "monthly": cmd_monthly}[a.cmd](a)
+     "positions": cmd_positions, "stats": cmd_stats, "monthly": cmd_monthly, "sip": cmd_sip}[a.cmd](a)
 
 
 if __name__ == "__main__":

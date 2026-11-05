@@ -10,7 +10,7 @@ An agent skill (for Claude and other agents that read `SKILL.md`) that acts as a
 - **Backtests** ideas on up to 10 years of daily data (`buy_hold`, `sma_cross`, `breakout`, `rsi_reversion`).
 - **Learns from history and big investors**: 2016–2026 market regimes and famous US/Indian investors' public holdings.
 - **Continuous learning**: every trade is journalled with a thesis; `lessons.md` is updated from evidence and read at the start of every session.
-- **Official add-ons under your rules** (`addons/`): Alpaca paper trading & backtest, Upstox trading, and Anthropic equity-research skills (thesis tracker, earnings preview/analysis, catalysts, ideas, sector overview, DCF, comps). Each is renamed `ADDON.md` so it only runs through trader-skill's risk check and journal. Official broker MCP connectors (Zerodha Kite, Upstox, Fyers, Kotak Neo, Dhan, Groww) are mapped with what each can do.
+- **Official add-ons under your rules** (`addons/`): Zerodha trading & investing (official `kite` CLI skill), Alpaca paper trading & backtest, Upstox trading, and Anthropic equity-research skills (thesis tracker, earnings preview/analysis, catalysts, ideas, sector overview, DCF, comps). Each is renamed `ADDON.md` so it only runs through trader-skill's risk check and journal. Official broker MCP connectors (Zerodha Kite, Upstox, Fyers, Kotak Neo, Dhan, Groww) are mapped with what each can do.
 - **Monthly after-tax report** against a goal (default 8–16% a month on the trading budget).
 
 ## About the monthly goal

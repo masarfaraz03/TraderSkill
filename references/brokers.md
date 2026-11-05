@@ -40,7 +40,7 @@ US symbols: `AAPL`, options OCC style (`AAPL 251121C00200000`), micro futures `M
 
 | Broker | API | Cost (check current) | Paper / sandbox | Notes |
 |---|---|---|---|---|
-| **Zerodha** (user's broker) | Kite Connect; `kiteconnect` | Personal: free (orders, no market data). Connect: ~₹2,000/month incl. live quotes + historical data (bundled since Feb 2025) | **No sandbox** → use `ledger.py` paper fills | Access token expires daily; login each morning. GTT orders for stops |
+| **Zerodha** (user's broker) | Kite Connect; `kiteconnect` | Personal: free (orders, no market data). Connect: ~₹2,000/month incl. live quotes + historical data (bundled since Feb 2025) | **No sandbox** → use `ledger.py` paper fills | **Official `kite` CLI + agent skill** (bundled as `addons/zerodha/`) does quotes, history, orders, GTT, MF/SIP; user runs `kite auth login` daily. GTT orders for stops |
 | Upstox | Upstox API v2/v3; `upstox-python-sdk` | free | Check docs (sandbox for order APIs announced) | |
 | Angel One | SmartAPI; `smartapi-python` | free | No | TOTP login |
 | Dhan | DhanHQ; `dhanhq` | trading free, data paid | No | |

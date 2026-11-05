@@ -28,7 +28,7 @@ def main():
     p.add_argument("--profile", required=True)
     p.add_argument("--ledger")
     p.add_argument("--market", choices=["US", "IN"], required=True)
-    p.add_argument("--asset", choices=["stock", "option", "future", "crypto"], required=True)
+    p.add_argument("--asset", choices=["stock", "option", "future", "crypto", "fund"], required=True)
     p.add_argument("--horizon", choices=["day", "swing", "long"], required=True)
     p.add_argument("--symbol", required=True)
     p.add_argument("--side", choices=["buy", "sell"], required=True)
@@ -40,12 +40,29 @@ def main():
     p.add_argument("--option-type", choices=["call", "put", "spread"], help="for options")
     p.add_argument("--max-loss", type=float, help="defined max loss for spreads")
     p.add_argument("--confirmed", action="store_true", help="user confirmed a long-term amount")
+    p.add_argument("--sip-monthly", type=float, help="monthly SIP amount (mutual fund / recurring buy); checked against long_term.max_monthly_sip")
     a = p.parse_args()
 
     prof = json.load(open(a.profile))
     tr, lt = prof["trading"], prof.get("long_term", {})
     ccy = CURRENCY[a.market]
     fails, warns = [], []
+
+    if a.sip_monthly is not None:
+        cap = lt.get("max_monthly_sip", {}).get(ccy)
+        if a.horizon != "long":
+            fails.append("SIPs are long-term only (use --horizon long).")
+        if cap is not None and a.sip_monthly > cap:
+            fails.append(f"Monthly SIP {m(ccy, a.sip_monthly)} exceeds max_monthly_sip {m(ccy, cap)}.")
+        if not a.confirmed:
+            warns.append("SIP amount needs the user's explicit confirmation (pass --confirmed once they agree).")
+        if prof.get("mode", "paper") != "live":
+            warns.append("Profile mode is PAPER: record the SIP in the ledger, don't create a live SIP.")
+        print("FAIL" if fails else "PASS")
+        print(f"  SIP {m(ccy, a.sip_monthly)}/month in {a.symbol}")
+        for f in fails: print("  ✗ " + f)
+        for w in warns: print("  ! " + w)
+        sys.exit(2 if fails else 0)
 
     notional = a.qty * a.price * a.multiplier
     capital = a.margin if (a.asset == "future" and a.margin) else notional
@@ -92,8 +109,14 @@ def main():
             fails.append(f"{a.asset} has 0% allocation in the profile.")
     else:  # long-term
         cap = lt.get("max_per_position", {}).get(ccy)
-        if cap is not None and capital > cap:
-            fails.append(f"Long-term position {m(ccy, capital)} exceeds long-term cap {m(ccy, cap)}.")
+        held = 0.0
+        if a.ledger and os.path.exists(a.ledger):
+            L = json.load(open(a.ledger))
+            held = sum(t["capital"] for t in L["trades"] if t["status"] == "open" and t["horizon"] == "long"
+                       and t["symbol"] == a.symbol and t["currency"] == ccy)
+        if cap is not None and held + capital > cap:
+            fails.append(f"Long-term position in {a.symbol} would be {m(ccy, held + capital)} "
+                         f"(already {m(ccy, held)}), over the long-term cap {m(ccy, cap)} per position.")
         if lt.get("require_confirmation", True) and not a.confirmed:
             warns.append("Long-term amount needs the user's explicit confirmation (pass --confirmed once they agree).")
         if a.asset in ("option", "future"):

@@ -1,6 +1,6 @@
 ---
 name: trader-skill
-description: Paper-first trading copilot for US and Indian markets (stocks, options, futures, crypto) across day trading, swing trading and long-term investing. Plans trades, enforces small-money risk caps (trading under $500 / ₹50,000 per trade), places paper or live orders through brokers like Webull, Zerodha, Alpaca, IBKR, Upstox, Angel One, Dhan, Fyers, Robinhood and Coinbase, backtests ideas on 10 years of history, studies famous investors' portfolios, runs equity research (earnings previews, theses, catalysts, DCF), acts as the gatekeeper for broker add-ons and connectors (Alpaca, Upstox, Zerodha Kite MCP, Dhan, Groww), tracks monthly after-tax results against a goal, and keeps a trade journal plus a lessons file so it keeps learning. Use this whenever the user wants to buy, sell, short, paper trade, size a position, backtest a strategy, review trades or their P&L, set an asset allocation, check what big investors are buying, or asks things like "should I buy X", "trade NIFTY options", "put $200 in BTC" — even if they don't say "skill" or name a broker.
+description: Paper-first trading copilot for US and Indian markets (stocks, options, futures, crypto) across day trading, swing trading and long-term investing. Plans trades, enforces small-money risk caps (trading under $500 / ₹50,000 per trade), places paper or live orders through brokers like Webull, Zerodha, Alpaca, IBKR, Upstox, Angel One, Dhan, Fyers, Robinhood and Coinbase, backtests ideas on 10 years of history, studies famous investors' portfolios, runs equity research (earnings previews, theses, catalysts, DCF), acts as the gatekeeper for broker add-ons and connectors (Zerodha kite CLI, Alpaca, Upstox, Kite MCP, Dhan, Groww), tracks monthly after-tax results against a goal, and keeps a trade journal plus a lessons file so it keeps learning. Use this whenever the user wants to buy, sell, short, paper trade, size a position, backtest a strategy, review trades or their P&L, set an asset allocation, check what big investors are buying, or asks things like "should I buy X", "trade NIFTY options", "put $200 in BTC" — even if they don't say "skill" or name a broker.
 ---
 
 # Trader Skill
@@ -63,7 +63,8 @@ python scripts/risk_check.py --profile <data>/profile.json --ledger <data>/ledge
 It prints `PASS`/`FAIL` with reasons and exits non-zero on failure. Default rules (from the profile):
 
 - **Trading (day & swing): max $500 per trade in the US, ₹50,000 in India** — this caps the capital put into the position (premium for options, margin for futures, cost for stock/crypto). Money *at risk* (entry→stop) is capped lower, 2% of the trading budget by default.
-- **Long-term investing** may use larger amounts, but only up to the profile's `long_term.max_per_position` and only after the user explicitly confirms the amount.
+- **Long-term investing** may use larger amounts, but only up to the profile's `long_term.max_per_position` (counting what's already held in that symbol) and only after the user explicitly confirms the amount. Mutual funds use `--asset fund`.
+- **SIPs / recurring buys** are checked by monthly amount against `long_term.max_monthly_sip` (`risk_check.py ... --horizon long --sip-monthly 15000`), need the user's confirmation of the amount, and are tracked with `ledger.py sip add|instalment|list|stop`. "Go ahead / confirm" from the user approves the amount; it does not switch the profile from paper to live.
 - **Allocation %** — the user sets how the trading budget splits across stocks/options/futures/crypto (e.g. 50/20/10/20). An order that would push a bucket over its % fails.
 - **Options**: buying calls/puts and defined-risk spreads only. No naked option selling — the loss is unlimited, which can't fit a small cap.
 - **Futures**: full contracts usually have notional far above the caps (one NIFTY lot is lakhs of rupees; an ES contract is ~$300k). Allow only micro contracts (MES, MNQ, MBT…) or Indian futures where max loss at the stop fits the cap, and say the notional size out loud. Otherwise suggest a defined-risk option or the ETF instead.
@@ -88,6 +89,8 @@ python scripts/ledger.py --ledger <data>/ledger.json open --market IN --asset op
 python scripts/ledger.py --ledger <data>/ledger.json close --id T7 --price 165 --note "target 1 hit"
 python scripts/ledger.py --ledger <data>/ledger.json positions
 python scripts/ledger.py --ledger <data>/ledger.json stats
+python scripts/ledger.py --ledger <data>/ledger.json sip add --market IN --symbol "Parag Parikh Flexi Cap" \
+  --monthly 15000 --broker zerodha --thesis "Core long-term equity"
 ```
 
 ## 5. Journal
@@ -153,6 +156,7 @@ Trader-skill is the **gatekeeper** for every trading or investing tool in the se
 |---|---|
 | Alpaca paper orders, positions, US market data | `addons/alpaca/paper-trading*/ADDON.md` (MCP, CLI or API variants) |
 | Alpaca-native backtest | `addons/alpaca/backtest/ADDON.md` |
+| **Zerodha** trading & investing: quotes, history, holdings, positions, MIS/CNC/NRML orders, GTT stops, alerts, mutual funds & SIPs (official `kite` CLI) | `addons/zerodha/ADDON.md` + `addons/zerodha/TRADERSKILL-NOTES.md` |
 | Upstox orders, GTT, option chain, margins, live data (India) | `addons/upstox/ADDON.md` |
 | Long-term thesis upkeep ("is my thesis intact") | `addons/research/thesis-tracker/ADDON.md` |
 | Before/after earnings | `addons/research/earnings-preview/`, `earnings-analysis/` |
@@ -166,7 +170,7 @@ Research add-ons produce input to a §2 plan (thesis, levels, catalysts), never 
 
 | Broker | Official MCP | Can place orders? |
 |---|---|---|
-| Zerodha | `mcp.kite.trade/mcp` (hosted) | Read-only except GTT orders |
+| Zerodha | `mcp.kite.trade/mcp` (hosted) | Read-only except GTT orders — for full trading use the `kite` CLI add-on |
 | Upstox | `mcp.upstox.com/mcp` | Read-only |
 | Fyers | `mcp.fyers.in/mcp` | Read-only |
 | Kotak Neo | `neo.kotaksecurities.com/mcp-server/mcp` | Read-only |
