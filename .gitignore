@@ -16,3 +16,4 @@ secrets*
 .kite/
 reports/
 *.local.json
+connectors/zerodha/edge/kite-session/config.ts

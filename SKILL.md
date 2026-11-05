@@ -161,6 +161,7 @@ Trader-skill is the **gatekeeper** for every trading or investing tool in the se
 | Alpaca paper orders, positions, US market data | `addons/alpaca/paper-trading*/ADDON.md` (MCP, CLI or API variants) |
 | Alpaca-native backtest | `addons/alpaca/backtest/ADDON.md` |
 | **Zerodha** trading & investing: quotes, history, holdings, positions, MIS/CNC/NRML orders, GTT stops, alerts, mutual funds & SIPs (official `kite` CLI) | `addons/zerodha/ADDON.md` + `addons/zerodha/TRADERSKILL-NOTES.md` |
+| **Zerodha via our own connector** (preferred when present): tools `zerodha_*` (in Cowork: `mcp__remote-devices__zerodha__*`) — status/one-tap login link, LTP (Kite → Yahoo fallback, source labelled), candles + ATR, holdings, positions, margins, orders, GTTs, two-step gated orders | `connectors/zerodha/README.md` |
 | Upstox orders, GTT, option chain, margins, live data (India) | `addons/upstox/ADDON.md` |
 | Long-term thesis upkeep ("is my thesis intact") | `addons/research/thesis-tracker/ADDON.md` |
 | Before/after earnings | `addons/research/earnings-preview/`, `earnings-analysis/` |
@@ -186,6 +187,8 @@ Research add-ons produce input to a §2 plan (thesis, levels, catalysts), never 
 **Webull connector — how to use it here.** Read tools are free to use: `get_stock_snapshot` / `get_stock_quotes` / `get_stock_bars` (prices, ATR, history for backtests), `get_crypto_snapshot`, `get_option_snapshot`, `get_account_list`, `get_account_balance`, `get_account_positions`, `get_open_orders`, `get_order_history`, earnings/news/analyst tools for research. Order tools — `place_stock_instruction`, `place_option_single_instruction`, `place_option_strategy_instruction`, `place_crypto_instruction`, `place_futures_instruction`, `place_algo_instruction`, `revoke_instruction` — are real-money actions: only in live mode, only after §3 PASS, only after the user confirms that exact order in the conversation, and never from a scheduled run. Before sizing, check `buying_power` from `get_account_balance`; if it's below the order cost, tell the user to add funds themselves. The Webull account ID is personal data: keep it in `trader-data/profile.json` → `brokers_accounts`, never in the repo.
 
 Read-only connectors are ideal for live quotes, holdings and history (they solve the price-data gap). A GTT or bracket order placed through any connector is still an order: risk check first, confirm if live, journal it.
+
+**Our Zerodha connector (`connectors/zerodha/`).** Start with `zerodha_status`. If not signed in, give the user the one-tap login link (they approve with their own 2FA on their phone; never log in for them). Read tools are free to use and label their price source. `zerodha_preview_order` → user confirms that exact request → `zerodha_place_confirmed` is the only live path; it is refused unless `mode` is `live` and `risk_check.py` passes, needs a static IP whitelisted in Kite, and is never used from a scheduled run. It has no money-movement tools.
 
 **Adding more add-ons later**: only from the broker or data vendor itself or another well-known source; copy into `addons/<name>/`, rename `SKILL.md` to `ADDON.md` so it can't trigger on its own and bypass these rules, add the guardrail block, record it in `THIRD_PARTY.md`.
 
