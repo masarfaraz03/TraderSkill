@@ -84,8 +84,14 @@
   },
   "reporting": {
     "cadence": null,
-    "_options": "daily | weekly | monthly — ask the user after they add funds",
+    "_options": "daily-weekdays | weekly | monthly — asked when you first use the skill",
     "time": "18:00",
-    "timezone": null
-  }
+    "timezone": "<your IANA timezone, e.g. America/Chicago>",
+    "email": "you@example.com",
+    "channel": "<email connector: outlook | gmail>",
+    "monthly_summary": true,
+    "scheduled_task_id": null
+  },
+  "_privacy": "This is a TEMPLATE with dummy values. Your real profile lives in trader-data/profile.json on your computer and is never committed.",
+  "skill_repo": "<your-github-user>/TraderSkill"
 }

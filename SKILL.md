@@ -7,7 +7,7 @@ description: Paper-first trading copilot for US and Indian markets (stocks, opti
 
 A trading copilot whose first job is to **protect a small account while it learns**. It trades with money the user can afford to lose, paper-trades by default, writes everything down, and turns every result into a lesson it reads next time.
 
-**Bundled files:** this skill uses `scripts/`, `references/`, `assets/` and `addons/`. If they are not next to this file, use the copies in the user's `TraderSkill` folder (repo root) or clone `github.com/masarfaraz03/TraderSkill`.
+**Bundled files:** this skill uses `scripts/`, `references/`, `assets/` and `addons/`. If they are not next to this file, use the copies in the user's `TraderSkill` folder (repo root) or clone the repo named in `profile.json` → `skill_repo`.
 
 Most retail traders lose money: SEBI's study of FY22 found about 9 in 10 individual F&O traders in India lost money. Treat that as the default outcome to beat, not a scare line. That is why the caps below are strict and why the skill never relaxes them by itself.
 
@@ -31,7 +31,8 @@ All state lives in one folder so learning carries across sessions:
 | Backtest / "how would this have done" | §6 Backtest |
 | What big investors hold / are buying | `references/investors.md` |
 | Review P&L, "how am I doing", weekly review | §7 Learn, §11 Report |
-| User added funds / wants reports | §3 money rule, §11 Report |
+| User added funds / wants reports, email or slides | §3 money rule, §11 Report |
+| First use, accounts, keys, privacy | §12 |
 | Set or change budget, allocation % | edit `profile.json` (§3 rules on who may raise caps) |
 | Connect a broker | `references/brokers.md`, §10 |
 | Research a company, earnings, thesis, valuation | §10 research add-ons → §2 Plan |
@@ -189,28 +190,48 @@ Read-only connectors are ideal for live quotes, holdings and history (they solve
 
 After the user adds funds (or on first setup), ask how often they want a report — daily (weekdays), weekly, or monthly — and the time and timezone; store it in `profile.json` → `reporting`. If the session can create scheduled tasks, offer to set one up so the report arrives on its own; a scheduled run needs the user's computer (their `TraderSkill` folder and broker sign-in), so mark it as needing the local device.
 
-Build each report with:
+Build each report in three steps:
 
-```bash
-python scripts/ledger.py --ledger <data>/ledger.json report --period day --profile <data>/profile.json \
-  --prices '{"NSE:INFY": 1492}' --out <data>/reports/<YYYY-MM-DD>.md
-```
+1. Fetch current prices (read-only broker quote or connector) for the open positions.
+2. Write `<data>/reports/<date>.notes.json` with your narrative: `{"headline": "...", "trends": [...], "lessons": [...], "needs_you": [...]}` —
+   - **headline** — one line: the day's result and the single most important thing.
+   - **trends** — how the user's holdings and their markets moved (index vs 200-day average, sector moves, volatility), 2–4 bullets.
+   - **lessons** — lessons that fired, were added, promoted or retired.
+   - **needs_you** — proposed live orders awaiting approval, cap/allocation questions, deposits the user said they'd make. Be plain when costs are eating returns (a $20/month AI cost on a $100 budget means 20% a month just to break even).
+3. Render:
+   ```bash
+   python scripts/render_report.py --ledger <data>/ledger.json --profile <data>/profile.json \
+     --prices '{"NSE:INFY": 1492}' --notes <data>/reports/<date>.notes.json --period day \
+     --html <data>/reports/<date>.html --email <data>/reports/<date>.email.html
+   ```
+   The `--html` page is the designed report (net-after-costs cards with a cost waterfall, equity curve, trades, positions, trends/lessons/needs-you; light and dark mode, phone-friendly). The `--email` file is the same content in plain tables and lists so it survives email sanitizers.
 
-Fetch current prices first (read-only broker quote or connector) for the open positions. Then fill the "Trend & lessons" section yourself:
+**Email delivery**: send the contents of the `.email.html` file as the HTML body to `profile.json` → `reporting.email`, through the user's own email connector (Outlook/Microsoft 365 or Gmail), subject `TraderSkill daily report — <date> — <net today/MTD>`. Send only to the user's own address from their profile; never to anyone else, and never put secrets in a report.
 
-- **What I did and why** — trades opened/closed, paper or live, and the outcome in money and R.
-- **Open positions** — unrealised P&L, distance to stop/target, any earnings or events coming up.
-- **Trends** — how the user's holdings and the markets they trade moved (index vs 200-day average, sector moves, volatility), in two or three lines.
-- **Net economics** — month to date after brokerage, estimated taxes and AI cost (`costs.ai_monthly`), against the monthly goal. Be plain when costs are eating the returns (e.g. a $20/month AI cost on a $100 budget means 20% a month just to break even).
-- **Needs you** — proposed live orders awaiting approval, cap or allocation questions, deposits the user said they'd make.
+**Presentation on request**: when the user asks for slides or a presentation, build a deck — use Claude's Slides artifact type if the session offers it (feed it the same numbers and narrative), otherwise `render_report.py ... --deck <data>/reports/<date>.pptx` (needs `pip install python-pptx`). Monthly reviews make a good deck: net after costs per market, what worked, lessons, next month's plan.
 
 Scheduled runs never place live orders and never move money: they update paper trades, mark positions, write the report and list live proposals for the user to approve in a conversation. If `paper_until` is set, stay in paper until that date; at the switch, show the paper month's results and ask before changing `mode` to `live`.
 
 The monthly report (`--period month`) adds the after-tax table from §8 and a review of lessons promoted or retired.
+
+## 12. Privacy and first-time setup
+
+Confidential and personal data stays on the user's computer (or in their own accounts) — never in the skill repo:
+
+| Data | Where it lives |
+|---|---|
+| Broker keys/tokens | `trader-data/secrets.env` (from `assets/secrets.example.env`; `scripts/secrets_local.py init/check`), or the broker's own login (`kite auth login`, connector OAuth) |
+| Email, timezone, schedule, budget, caps, brokers | `trader-data/profile.json` |
+| Trades, SIPs, lessons, reports | `trader-data/` |
+| Repo / published files | dummy values only (`you@example.com`, `your-webull-app-key`, `<your-github-user>`) |
+
+Never print, echo, commit or paste secret values; never ask the user to paste keys into chat — they type them into `secrets.env` themselves. Before any `git commit`/`push` of the skill, run `python scripts/secrets_local.py audit` and stop if it fails.
+
+**First use** (when `trader-data/profile.json` is missing): ask, in one short round, for — monthly budget per market, brokers, which asset classes, report cadence (daily weekdays / weekly / monthly), report time and timezone, and the email address for reports. Store answers in `profile.json`, run `secrets_local.py init` if they'll connect a broker by API, then offer to create the scheduled report task. Broker access options to offer: Zerodha — `kite auth login` in their own terminal (full trading) or the Kite MCP connector `mcp.kite.trade/mcp` (read-only); Webull — the Webull connector in Claude's connector directory, or Webull OpenAPI keys in `secrets.env`.
 
 ## Reference files
 
 - `references/brokers.md` — US & India broker APIs, paper/sandbox support, how to connect, symbol formats. Read before any live order or broker setup.
 - `references/market-history.md` — 2016–2026 market regimes and what worked/failed in each, US, India and crypto. Read when planning or reviewing.
 - `references/investors.md` — famous US and Indian investors from the last 30 years, how to look up their current holdings, and what's worth learning from each.
-- `scripts/risk_check.py`, `scripts/ledger.py` (open/close/stats/monthly/report/sip), `scripts/backtest.py` — run with `--help` for all options.
+- `scripts/risk_check.py`, `scripts/ledger.py` (open/close/stats/monthly/report/sip), `scripts/render_report.py` (designed HTML, email, deck), `scripts/secrets_local.py` (local secrets, repo audit), `scripts/backtest.py` — run with `--help` for all options.

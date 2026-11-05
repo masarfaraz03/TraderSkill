@@ -6,3 +6,13 @@ __pycache__/
 evals/results/
 .trader-skill-repo.tar.gz
 Claude outputs/
+# --- confidential: never commit (real values live only on the user's computer) ---
+*.env
+secrets*
+!scripts/secrets_local.py
+!assets/secrets.example.env
+*.pem
+*.key
+.kite/
+reports/
+*.local.json
