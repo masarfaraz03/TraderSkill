@@ -19,7 +19,7 @@ Whatever the broker, map the plan to: `market, asset, symbol, side, qty, order_t
 
 | Broker | API | Assets via API | Paper / sandbox | Notes |
 |---|---|---|---|---|
-| **Webull** (user's broker) | Webull OpenAPI (developer.webull.com); apply for access. An unofficial-looking `webull-openapi-mcp` package also exists on PyPI — verify its publisher before use | stocks, ETFs, options (check docs for crypto/futures) | Webull announced OpenAPI multi-asset paper simulation in 2026 | App also has paper trading for manual practice |
+| **Webull** (user's broker) | **Claude Webull connector** (official, OAuth; quotes, account, positions, orders when Trading-authorised) or Webull OpenAPI (developer.webull.com); apply for access. An unofficial-looking `webull-openapi-mcp` package also exists on PyPI — verify its publisher before use | stocks, ETFs, options (check docs for crypto/futures) | Webull announced OpenAPI multi-asset paper simulation in 2026 | App also has paper trading for manual practice |
 | Alpaca | alpaca-py, REST + websockets | stocks, ETFs, options, crypto | Yes, free paper account (`paper-api.alpaca.markets`) | Easiest paper API; free market data tier |
 | Interactive Brokers | TWS API, Client Portal Web API; `ib_async` | stocks, options, futures incl. micros, forex, crypto | Yes, paper account | Broadest asset coverage; needs TWS/Gateway running |
 | tastytrade | Open API | stocks, options, futures, crypto | Yes, sandbox (cert) | Options-friendly |

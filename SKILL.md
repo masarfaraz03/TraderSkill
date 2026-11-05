@@ -181,6 +181,9 @@ Research add-ons produce input to a §2 plan (thesis, levels, catalysts), never 
 | Dhan | `mcp.dhan.co/mcp` | Yes |
 | Groww | `mcp.groww.in/mcp` | Yes (sells need DDPI) |
 | Alpaca | via Alpaca's MCP (see add-on) | Yes (paper or live keys) |
+| **Webull** | **Webull connector** in Claude's connector directory (official) | Yes, if the account is authorised for Trading (`get_account_authorization` shows it) |
+
+**Webull connector — how to use it here.** Read tools are free to use: `get_stock_snapshot` / `get_stock_quotes` / `get_stock_bars` (prices, ATR, history for backtests), `get_crypto_snapshot`, `get_option_snapshot`, `get_account_list`, `get_account_balance`, `get_account_positions`, `get_open_orders`, `get_order_history`, earnings/news/analyst tools for research. Order tools — `place_stock_instruction`, `place_option_single_instruction`, `place_option_strategy_instruction`, `place_crypto_instruction`, `place_futures_instruction`, `place_algo_instruction`, `revoke_instruction` — are real-money actions: only in live mode, only after §3 PASS, only after the user confirms that exact order in the conversation, and never from a scheduled run. Before sizing, check `buying_power` from `get_account_balance`; if it's below the order cost, tell the user to add funds themselves. The Webull account ID is personal data: keep it in `trader-data/profile.json` → `brokers_accounts`, never in the repo.
 
 Read-only connectors are ideal for live quotes, holdings and history (they solve the price-data gap). A GTT or bracket order placed through any connector is still an order: risk check first, confirm if live, journal it.
 
@@ -227,7 +230,7 @@ Confidential and personal data stays on the user's computer (or in their own acc
 
 Never print, echo, commit or paste secret values; never ask the user to paste keys into chat — they type them into `secrets.env` themselves. Before any `git commit`/`push` of the skill, run `python scripts/secrets_local.py audit` and stop if it fails.
 
-**First use** (when `trader-data/profile.json` is missing): ask, in one short round, for — monthly budget per market, brokers, which asset classes, report cadence (daily weekdays / weekly / monthly), report time and timezone, and the email address for reports. Store answers in `profile.json`, run `secrets_local.py init` if they'll connect a broker by API, then offer to create the scheduled report task. Broker access options to offer: Zerodha — `kite auth login` in their own terminal (full trading) or the Kite MCP connector `mcp.kite.trade/mcp` (read-only); Webull — the Webull connector in Claude's connector directory, or Webull OpenAPI keys in `secrets.env`.
+**First use** (when `trader-data/profile.json` is missing): ask, in one short round, for — monthly budget per market, brokers, which asset classes, report cadence (daily weekdays / weekly / monthly), report time and timezone, and the email address for reports. Store answers in `profile.json`, run `secrets_local.py init` if they'll connect a broker by API, then offer to create the scheduled report task. Broker access options to offer: Zerodha — `kite auth login` in their own terminal (full trading) or the Kite MCP connector `mcp.kite.trade/mcp` (read-only); Webull — the Webull connector in Claude's connector directory (preferred: OAuth, no keys stored), or Webull OpenAPI keys in `secrets.env`.
 
 ## Reference files
 
